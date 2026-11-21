@@ -7,7 +7,7 @@
 ## كيف تشتغل
 
 - **الواجهة** في هذا المستودع: صفحات ثابتة على GitHub Pages (`index.html` و`css/` و`js/`)، بدون أي أداة بناء.
-- **الغرف** على خادم لعبة الدخيل في Cloudflare Workers (مستودع `al-dakheel`): `server/mafia/room.js` فيه منطق اللعبة كامل، وكل غرفة Durable Object مستقل (`MafiaGame` في `server/worker.js`). العنوان `wss://al-dakheel.vamosx.workers.dev/mafia/ws/<الرمز>`، ولا يقبل إلا صفحات هذا الموقع.
+- **الخادم** في مجلد `server/` بهذا المستودع: Cloudflare Workers مستقل باسم `mafia-server`، لا يشارك أي لعبة ثانية في شيء. `server/room.js` فيه منطق اللعبة كامل، وكل غرفة Durable Object مستقل (`MafiaGame` في `server/worker.js`). العنوان `wss://mafia-server.<حسابك>.workers.dev/ws/<الرمز>`، ولا يقبل إلا صفحات هذا الموقع. Cloudflare ينشره تلقائيًا من مجلد `server` مع كل رفع على main.
 - الخادم هو الحكم: يوزّع الأدوار ويحسب الليل والتصويت والفوز. كل لاعب يوصله دوره هو فقط، والمافيا يعرفون بعض، وتنكشف كل الأدوار في النهاية.
 
 | الملف | ماذا فيه |
@@ -29,13 +29,11 @@
 ## التجربة محليًا
 
 ```bash
-# في مستودع al-dakheel: خادم الغرف
-PORT=8787 node server/dev.mjs
-# في هذا المستودع: الصفحات
+cd server && npm install && npm test   # اختبارات منطق اللعبة
+npm run dev                            # خادم الغرف على ws://localhost:8787
+# وفي جذر المستودع: الصفحات
 python3 -m http.server 8080
 # ثم افتح: http://localhost:8080/?server=ws://localhost:8787
 ```
-
-اختبارات منطق اللعبة في `al-dakheel/test/mafia.test.mjs` (`npm test` هناك).
 
 صُنعت في الرافعية بيد Vamos.

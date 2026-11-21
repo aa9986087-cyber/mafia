@@ -1,0 +1,14 @@
+{
+  "name": "mafia-server",
+  "private": true,
+  "type": "module",
+  "description": "خادم غرف لعبة مافيا (Cloudflare Workers + Durable Objects)",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "dev": "node dev.mjs",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "ws": "8.18.3"
+  }
+}

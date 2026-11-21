@@ -1,0 +1,14 @@
+// The Mafia server: Cloudflare Workers + Durable Objects (free plan), separate from every other game.
+// Cloudflare deploys it from this folder (root directory "server") on every push to main.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mafia-server",
+  "main": "worker.js",
+  "compatibility_date": "2026-11-01",
+  "workers_dev": true,
+  "preview_urls": false,
+  "durable_objects": { "bindings": [{ "name": "ROOMS", "class_name": "MafiaGame" }] },
+  // SQLite-backed Durable Objects are the ones available on the free plan.
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["MafiaGame"] }],
+  "observability": { "enabled": true }
+}
