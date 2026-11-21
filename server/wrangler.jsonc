@@ -7,6 +7,10 @@
   "compatibility_date": "2026-11-01",
   "workers_dev": true,
   "preview_urls": false,
+  // The game's pages are served from here too, so the game works on this address as well as on GitHub
+  // Pages. copy-pages.mjs puts just the pages into public/ before each deploy; rooms (/ws/*) reach the worker.
+  "build": { "command": "node copy-pages.mjs" },
+  "assets": { "directory": "./public", "run_worker_first": ["/ws/*"] },
   "durable_objects": { "bindings": [{ "name": "ROOMS", "class_name": "MafiaGame" }] },
   // SQLite-backed Durable Objects are the ones available on the free plan.
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["MafiaGame"] }],

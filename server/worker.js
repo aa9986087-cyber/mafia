@@ -8,7 +8,7 @@ const normalizeCode = (c) => String(c || "").toUpperCase().replace(/[^A-Z0-9]/g,
 const isValidCode = (c) => c.length === 5 && [...c].every((x) => CODE_CHARS.includes(x));
 
 // Only the game's pages (and local testing) may open a room.
-const ORIGINS = [/^https:\/\/aa9986087-cyber\.github\.io$/, /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/];
+const ORIGINS = [/^https:\/\/aa9986087-cyber\.github\.io$/, /^https:\/\/mafia-server\.vamosx\.workers\.dev$/, /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/];
 
 export class MafiaGame extends DurableObject {
   constructor(ctx, env) {
@@ -50,7 +50,7 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const m = url.pathname.match(/^\/ws\/([A-Za-z0-9]+)$/);
-    if (!m) return new Response("خادم لعبة مافيا. العب من https://aa9986087-cyber.github.io/mafia/", { headers: { "content-type": "text/plain; charset=utf-8" } });
+    if (!m) return new Response("not found", { status: 404 }); // pages are served as static assets before this
     if (!ORIGINS.some((re) => re.test(request.headers.get("Origin") || ""))) return new Response("forbidden", { status: 403 });
     if (request.headers.get("Upgrade") !== "websocket") return new Response("expected websocket", { status: 426 });
     const code = normalizeCode(m[1]);
