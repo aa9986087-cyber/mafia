@@ -1,4 +1,5 @@
-// Before each deploy: copy only the game's pages into server/public, which Cloudflare serves next to the rooms.
+// Before each deploy (see wrangler.jsonc at the repository root): copy only the game's pages into server/public,
+// which Cloudflare serves next to the rooms.
 import { cp, rm, mkdir } from "node:fs/promises";
 
 const root = new URL("../", import.meta.url), out = new URL("public/", import.meta.url);

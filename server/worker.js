@@ -8,7 +8,7 @@ const normalizeCode = (c) => String(c || "").toUpperCase().replace(/[^A-Z0-9]/g,
 const isValidCode = (c) => c.length === 5 && [...c].every((x) => CODE_CHARS.includes(x));
 
 // Only the game's pages (and local testing) may open a room.
-const ORIGINS = [/^https:\/\/aa9986087-cyber\.github\.io$/, /^https:\/\/mafia-server\.vamosx\.workers\.dev$/, /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/];
+const ORIGINS = [/^https:\/\/aa9986087-cyber\.github\.io$/, /^https:\/\/mafia\.vamosx\.workers\.dev$/, /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/];
 
 export class MafiaGame extends DurableObject {
   constructor(ctx, env) {

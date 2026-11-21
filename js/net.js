@@ -3,7 +3,7 @@
 
 // The game's own server (server/ in this repository, on Cloudflare). ?server=ws://127.0.0.1:8787 points a test
 // page at a local one.
-const SERVER = new URLSearchParams(location.search).get("server") || "wss://mafia-server.vamosx.workers.dev";
+const SERVER = new URLSearchParams(location.search).get("server") || "wss://mafia.vamosx.workers.dev";
 
 export const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 export const CODE_LEN = 5;
