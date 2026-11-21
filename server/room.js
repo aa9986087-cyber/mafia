@@ -217,6 +217,16 @@ export class MafiaRoom {
     this.dirty = true;
   }
 
+  /** The people who actually talk: living humans still connected. Bots never hold the discussion up. */
+  talkers() { return this.living().filter((p) => !p.bot && p.connected); }
+
+  /** The vote starts once more than half of the people are ready (with no people left, straight away). */
+  readyToVote() {
+    if (this.phase !== "discuss") return false;
+    const people = this.talkers();
+    return people.filter((p) => p.ready).length * 2 > people.length;
+  }
+
   startDiscussion() {
     this.phase = "discuss";
     this.deadline = this.now() + this.settings.discuss * 1000;
@@ -324,7 +334,7 @@ export class MafiaRoom {
       if (this.phase === "reveal") { if (!b.ready && this.botReady(b, now, 1500, 3000)) HANDLERS.seen.call(this, b); continue; }
       if (!b.alive || b.left) continue;
       if (this.phase === "night" && !b.pick) {
-        if (!this.botReady(b, now, 3000, 9000)) continue;
+        if (!this.botReady(b, now, 2000, 3000)) continue;
         const alive = this.living().filter((x) => x !== b);
         let target;
         if (b.role === "mafia") {
@@ -340,10 +350,11 @@ export class MafiaRoom {
         } else target = pickOne(alive);
         if (target) HANDLERS.pick.call(this, b, { target: target.id });
       } else if (this.phase === "discuss" && !b.ready) {
-        // Give the people time to talk: bots are ready only after most of the discussion.
-        if (now >= this.deadline - this.settings.discuss * 1000 * 0.35) HANDLERS.ready.call(this, b, { on: true });
+        // Bots have nothing to say: they are ready at once. Only the people's readiness decides when to vote.
+        b.ready = true;
+        this.dirty = true;
       } else if (this.phase === "vote" && b.vote === undefined) {
-        if (!this.botReady(b, now, 3000, 8000)) continue;
+        if (!this.botReady(b, now, 1000, 1500)) continue;
         const alive = this.living().filter((x) => x !== b);
         const caught = b.role === "detective" && b.results.find((r) => r.mafia && this.players.get(r.id)?.alive);
         // Otherwise lean towards whoever already has the most votes, so a round rarely ends in a tie.
@@ -387,7 +398,7 @@ export class MafiaRoom {
         if (due && !this.checkWin()) this.startDiscussion();
         break;
       case "discuss":
-        if (due) this.startVote();
+        if (due || this.readyToVote()) this.startVote();
         break;
       case "vote": {
         const voters = this.living().filter((p) => p.connected);
@@ -434,7 +445,7 @@ export class MafiaRoom {
     if (this.morning) v.morning = this.morning;
     if (this.phase === "vote") v.myVote = me.vote ?? null;
     if (this.phase === "result" && this.result) v.result = this.result;
-    if (this.phase === "discuss") v.readyCount = this.living().filter((p) => p.ready).length;
+    if (this.phase === "discuss") { const people = this.talkers(); v.readyCount = people.filter((p) => p.ready).length; v.readyNeed = Math.floor(people.length / 2) + 1; }
     if (end) v.winner = this.winner;
     return v;
   }
@@ -524,8 +535,7 @@ const HANDLERS = {
   ready(p, msg) {
     if (this.phase !== "discuss" || !p.alive || p.left) return;
     p.ready = msg.on !== false;
-    const alive = this.living();
-    if (alive.filter((x) => x.ready).length * 2 > alive.length) this.startVote();
+    if (this.readyToVote()) this.startVote();
     this.dirty = true;
   },
 

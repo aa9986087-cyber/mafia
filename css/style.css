@@ -187,6 +187,7 @@ details.rules b { color: var(--ink); }
   background: rgba(255, 255, 255, .035); border: 1.5px solid rgba(255, 255, 255, .08); transition: border-color .2s, background .2s, transform .12s;
 }
 .choice:active:not(:disabled) { transform: scale(.97); }
+.choices > li { min-width: 0; }
 .choice .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 800; }
 .choice.picked { border-color: var(--gold); background: rgba(184, 154, 94, .14); }
 body[data-time="night"] .choice.picked { border-color: #8fa6ff; background: rgba(120, 140, 220, .16); }
@@ -257,7 +258,9 @@ body[data-time="night"] .choice.picked { border-color: #8fa6ff; background: rgba
 body.has-mchat .view { padding-bottom: calc(var(--bottom) + 190px); }
 
 /* Ask, toast and the dark curtain between scenes */
-.ask { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; padding: 20px; background: rgba(0, 0, 0, .7); }
+.ask { position: fixed; inset: 0; z-index: 40; display: grid; justify-items: center; align-items: start; overflow-y: auto; overscroll-behavior: contain; background: rgba(0, 0, 0, .7);
+  padding: max(20px, var(--top)) max(16px, env(safe-area-inset-right)) max(20px, var(--bottom)) max(16px, env(safe-area-inset-left)); }
+.ask > * { margin-block: auto; } /* centred, yet never cut off at the top of a short screen */
 .ask-box { width: min(380px, 100%); display: grid; gap: 12px; text-align: center; padding: 22px; border-radius: 20px; background: var(--panel); border: 1px solid var(--line); }
 .ask-box p { margin: 0; color: var(--muted); }
 .ask-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -272,7 +275,16 @@ body.has-mchat .view { padding-bottom: calc(var(--bottom) + 190px); }
 @keyframes pop { from { opacity: 0; transform: scale(.85); } }
 @keyframes grow { from { transform: scaleX(0); } }
 
+/* Small phones (iPhone SE/mini): the top bar keeps all its buttons on screen. */
+@media (max-width: 400px) {
+  .bar { gap: 6px; }
+  .bar-tools { gap: 6px; }
+  .icon-btn { min-width: 40px; height: 40px; padding: 0 8px; }
+  .bar-code b { font-size: 18px; letter-spacing: .1em; }
+}
 @media (max-width: 360px) {
+  .icon-btn.peek span { display: none; }
+  .bar-code span { display: none; }
   .players, .choices { grid-template-columns: 1fr; }
   .title { font-size: 60px; }
 }

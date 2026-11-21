@@ -308,3 +308,20 @@ test("the host can kick someone: in the lobby they are gone, in a game they are 
   g.send(0, { t: "bots", n: 2 });
   assert.equal([...g.room.players.values()].some((p) => p.bot), false, "bots are added only in the lobby");
 });
+
+test("with bots, the vote starts as soon as the people are ready, and bots vote within seconds", () => {
+  const g = setup(1, { doctor: false, detective: false });
+  g.send(0, { t: "bots", n: 5 });
+  g.send(0, { t: "start" });
+  g.send(0, { t: "seen" });
+  for (let i = 0; i < 200 && g.room.phase !== "discuss" && g.room.phase !== "end"; i++) { g.clock.advance(500); g.room.tick(); }
+  if (g.room.phase === "end" || !g.p(0).alive) return; // the person was the night's victim: nothing to check
+  g.room.tick();
+  assert.equal(g.room.phase, "discuss", "bots alone do not start the vote");
+  g.send(0, { t: "ready" });
+  g.room.tick();
+  assert.equal(g.room.phase, "vote", "one ready person is a majority of the people");
+  for (let i = 0; i < 8; i++) { g.clock.advance(500); g.room.tick(); }
+  const bots = g.room.living().filter((p) => p.bot);
+  assert.ok(bots.every((p) => p.vote !== undefined) || g.room.phase !== "vote", "bots voted within four seconds");
+});

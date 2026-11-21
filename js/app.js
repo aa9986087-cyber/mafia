@@ -1,7 +1,7 @@
 // Mafia: every screen of the game. The server decides everything; this page shows what it sends and passes on
 // the player's choices.
-import { Net, normalizeCode, isValidCode, randomCode } from "./net.js?v=6";
-import { sfx, buzz } from "./sound.js?v=6";
+import { Net, normalizeCode, isValidCode, randomCode } from "./net.js?v=7";
+import { sfx, buzz } from "./sound.js?v=7";
 
 const $ = (id) => document.getElementById(id);
 const view = $("view");
@@ -293,7 +293,7 @@ function morning() {
 function discuss() {
   const alive = living();
   const ready = S.readyCount || 0;
-  const need = Math.floor(alive.length / 2) + 1;
+  const need = S.readyNeed || Math.floor(alive.length / 2) + 1;
   const mine = me()?.ready;
   return `<div class="phase-head enter"><div><span class="eyebrow">النهار ${ar(S.round)}</span><h2>وقت النقاش</h2><p>تناقشوا: مين تشكّون فيه؟</p></div>${timerHTML()}</div>
     <ul class="alive-list enter">${S.players.filter((p) => !p.left || p.alive).map((p) => `<li class="${p.alive ? "" : "dead"} ${p.ready ? "ready" : ""}"><bdi>${esc(p.name)}</bdi></li>`).join("")}</ul>
@@ -488,8 +488,21 @@ $("leaveBtn").addEventListener("click", () => {
 const wake = () => { if (!document.hidden) net?.wake(); };
 document.addEventListener("visibilitychange", wake);
 addEventListener("pageshow", wake);
-// iPhone Safari ignores user-scalable=no: stop pinch zoom from breaking the layout.
-for (const ev of ["gesturestart", "gesturechange"]) document.addEventListener(ev, (e) => e.preventDefault(), { passive: false });
+// ---------- iPhone Safari ----------
+// Safari ignores user-scalable=no: a pinch or a quick double tap zooms the whole game and leaves it zoomed.
+const typing = (t) => t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA");
+for (const ev of ["gesturestart", "gesturechange", "gestureend"]) document.addEventListener(ev, (e) => e.preventDefault(), { passive: false });
+document.addEventListener("touchmove", (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+let lastTouchEnd = 0;
+document.addEventListener("touchend", (e) => {
+  const now = Date.now();
+  // A second tap this soon is a zoom to Safari: keep it a tap by pressing the button ourselves.
+  if (now - lastTouchEnd < 320 && !typing(e.target) && e.cancelable && !e.target.closest?.("#roleCard, #peekBtn")) {
+    e.preventDefault();
+    e.target.closest?.("button:not([disabled])")?.click();
+  }
+  lastTouchEnd = now;
+}, { passive: false });
 
 // ---------- start ----------
 
