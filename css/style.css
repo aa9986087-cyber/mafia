@@ -80,7 +80,7 @@ body.in-room .view { padding-top: calc(var(--top) + 76px); }
   background: #0c0b0e; color: var(--ink); font-size: 18px; outline: none; -webkit-appearance: none; appearance: none;
 }
 .input:focus { border-color: var(--gold); }
-.code-input { text-align: center; letter-spacing: .4em; font-weight: 800; text-transform: uppercase; }
+.code-input { text-align: center; letter-spacing: .4em; font-weight: 800; font-variant-numeric: tabular-nums; }
 .row { display: flex; gap: 10px; }
 .row > .input { flex: 1; min-width: 0; }
 .error { color: #ff8a9a; min-height: 1.4em; margin: 0; font-size: 15px; }

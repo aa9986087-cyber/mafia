@@ -1,1 +1,2 @@
-export const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+// Room codes are five digits.
+export const CODE_CHARS = "0123456789";

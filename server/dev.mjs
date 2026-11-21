@@ -12,7 +12,7 @@ const wss = new WebSocketServer({ noServer: true, maxPayload: 4096 });
 server.on("upgrade", (req, socket, head) => {
   const url = new URL(req.url, "http://x");
   const m = url.pathname.match(/^\/ws\/([A-Za-z0-9]+)$/);
-  const code = m && m[1].toUpperCase();
+  const code = m && m[1];
   if (!code || code.length !== 5 || ![...code].every((c) => CODE_CHARS.includes(c))) return socket.destroy();
   wss.handleUpgrade(req, socket, head, (ws) => {
     const create = url.searchParams.get("create") === "1";

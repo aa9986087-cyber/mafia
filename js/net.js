@@ -5,9 +5,13 @@
 // page at a local one.
 const SERVER = new URLSearchParams(location.search).get("server") || "wss://mafia.vamosx.workers.dev";
 
-export const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+// Room codes are five digits. Arabic-Indic and Persian digits typed on an Arabic keyboard count too.
+export const CODE_CHARS = "0123456789";
 export const CODE_LEN = 5;
-export const normalizeCode = (c) => String(c || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, CODE_LEN);
+export const normalizeCode = (c) => String(c || "")
+  .replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+  .replace(/[\u06f0-\u06f9]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
+  .replace(/[^0-9]/g, "").slice(0, CODE_LEN);
 export const isValidCode = (c) => c.length === CODE_LEN && [...c].every((x) => CODE_CHARS.includes(x));
 export const randomCode = () => Array.from({ length: CODE_LEN }, () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]).join("");
 

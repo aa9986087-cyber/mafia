@@ -4,7 +4,7 @@ import { DurableObject } from "cloudflare:workers";
 import { MafiaRoom, MAFIA_TICK_MS } from "./room.js";
 
 import { CODE_CHARS } from "./codes.js";
-const normalizeCode = (c) => String(c || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 5);
+const normalizeCode = (c) => String(c || "").replace(/[^0-9]/g, "").slice(0, 5);
 const isValidCode = (c) => c.length === 5 && [...c].every((x) => CODE_CHARS.includes(x));
 
 // Only the game's pages (and local testing) may open a room.

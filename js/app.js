@@ -1,7 +1,7 @@
 // Mafia: every screen of the game. The server decides everything; this page shows what it sends and passes on
 // the player's choices.
-import { Net, normalizeCode, isValidCode, randomCode } from "./net.js?v=8";
-import { sfx, buzz } from "./sound.js?v=8";
+import { Net, normalizeCode, isValidCode, randomCode } from "./net.js?v=9";
+import { sfx, buzz } from "./sound.js?v=9";
 
 const $ = (id) => document.getElementById(id);
 const view = $("view");
@@ -56,7 +56,7 @@ function home(message = "") {
     <section class="panel home-card enter">
       <label class="field">اسمك<input id="nameIn" class="input" maxlength="16" autocomplete="nickname" placeholder="مثلًا: أبو فهد" value="${esc(store.get("mafia-name") || "")}"></label>
       ${code ? "" : `<button id="createBtn" class="btn gold block" type="button">أنشئ غرفة</button><div class="divider">أو ادخل برمز الغرفة</div>`}
-      <div class="row"><input id="codeIn" class="input code-input" maxlength="5" dir="ltr" autocomplete="off" autocapitalize="characters" placeholder="رمز الغرفة" value="${esc(code)}" aria-label="رمز الغرفة">
+      <div class="row"><input id="codeIn" class="input code-input" maxlength="5" dir="ltr" autocomplete="off" inputmode="numeric" pattern="[0-9]*" placeholder="رمز الغرفة" value="${esc(code)}" aria-label="رمز الغرفة">
         <button id="joinBtn" class="btn ${code ? "gold" : ""}" type="button">ادخل</button></div>
       <p id="homeMsg" class="error" role="alert">${esc(message)}</p>
     </section>
@@ -73,7 +73,7 @@ function home(message = "") {
     if (!name) { $("homeMsg").textContent = "اكتب اسمك أولًا."; $("nameIn").focus(); return; }
     store.set("mafia-name", name);
     let c = create ? randomCode() : normalizeCode($("codeIn").value);
-    if (!create && !isValidCode(c)) { $("homeMsg").textContent = "رمز الغرفة ٥ خانات."; return; }
+    if (!create && !isValidCode(c)) { $("homeMsg").textContent = "رمز الغرفة ٥ أرقام."; return; }
     sfx.unlock();
     enterRoom(c, create);
   };
