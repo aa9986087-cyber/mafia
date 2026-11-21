@@ -300,3 +300,14 @@ body.has-mchat .view { padding-bottom: calc(var(--bottom) + 190px); }
 .sheet-list li { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 14px; background: rgba(255, 255, 255, .04); }
 .sheet-list .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 800; }
 .sheet-list .out { opacity: .45; }
+
+/* Same stage, new data: no entrance animation again (it looked like the page reloading on every tap). */
+.view.quiet .enter, .view.quiet .reveal-in, .view.quiet .reveal-in-2, .view.quiet .sun, .view.quiet .verdict,
+.view.quiet .tally-bar i, .view.quiet .roles li { animation: none; }
+
+/* The day's discussion chat: same panel as the mafia's, in gold */
+.mchat.day { background: linear-gradient(0deg, rgba(20, 17, 12, .98), rgba(24, 20, 14, .92)); border-top-color: rgba(184, 154, 94, .45); }
+.mchat.day .mchat-log b { color: var(--gold-2); }
+.mchat.day .mchat-form input { border-color: rgba(184, 154, 94, .4); background: #0d0b08; }
+.mchat.day .btn.crimson { background: linear-gradient(180deg, #e3cf9c, var(--gold) 60%, #8d7240); color: #1b1407; border-color: #e9d7a7; }
+.mchat-form input:disabled { opacity: .6; }

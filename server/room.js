@@ -57,6 +57,7 @@ export class MafiaRoom {
     this.result = null; // { target, tie, votes, counts }
     this.winner = null;
     this.nightChat = [];
+    this.dayChat = [];
     this.dirty = true;
   }
 
@@ -224,11 +225,13 @@ export class MafiaRoom {
   readyToVote() {
     if (this.phase !== "discuss") return false;
     const people = this.talkers();
+    if (!people.length) return true; // only bots (or nobody connected) left alive: nothing to wait for
     return people.filter((p) => p.ready).length * 2 > people.length;
   }
 
   startDiscussion() {
     this.phase = "discuss";
+    this.dayChat = [];
     this.deadline = this.now() + this.settings.discuss * 1000;
     for (const p of this.players.values()) p.ready = false;
     this.dirty = true;
@@ -443,6 +446,7 @@ export class MafiaRoom {
     }
     if (me.role === "detective") v.results = me.results;
     if (this.morning) v.morning = this.morning;
+    if (this.phase === "discuss" || this.phase === "vote") v.chat = this.dayChat;
     if (this.phase === "vote") v.myVote = me.vote ?? null;
     if (this.phase === "result" && this.result) v.result = this.result;
     if (this.phase === "discuss") { const people = this.talkers(); v.readyCount = people.filter((p) => p.ready).length; v.readyNeed = Math.floor(people.length / 2) + 1; }
@@ -528,6 +532,19 @@ const HANDLERS = {
     if (!text) return;
     this.nightChat.push({ from: p.id, text });
     if (this.nightChat.length > 40) this.nightChat.shift();
+    this.dirty = true;
+  },
+
+  /** The day's discussion chat: the living write, everyone reads (those who are out only watch). */
+  chat(p, msg) {
+    if ((this.phase !== "discuss" && this.phase !== "vote") || !p.alive || p.left) return;
+    const text = cleanText(msg.text);
+    if (!text) return;
+    const now = this.now();
+    if (now - (p.lastChatAt || 0) < 700) return; // no flooding
+    p.lastChatAt = now;
+    this.dayChat.push({ from: p.id, text });
+    if (this.dayChat.length > 60) this.dayChat.shift();
     this.dirty = true;
   },
 

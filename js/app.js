@@ -1,7 +1,7 @@
 // Mafia: every screen of the game. The server decides everything; this page shows what it sends and passes on
 // the player's choices.
-import { Net, normalizeCode, isValidCode, randomCode } from "./net.js?v=7";
-import { sfx, buzz } from "./sound.js?v=7";
+import { Net, normalizeCode, isValidCode, randomCode } from "./net.js?v=8";
+import { sfx, buzz } from "./sound.js?v=8";
 
 const $ = (id) => document.getElementById(id);
 const view = $("view");
@@ -173,7 +173,10 @@ function render() {
     return;
   }
   const screens = { lobby, reveal, night, morning, discuss, vote, result, end };
-  const keepScroll = view.dataset.screen === S.phase ? scrollY : 0;
+  const same = view.dataset.screen === S.phase;
+  const keepScroll = same ? scrollY : 0;
+  // Within the same stage, redraw quietly: entrance animations are only for a new stage.
+  view.classList.toggle("quiet", same);
   view.dataset.screen = S.phase;
   view.innerHTML = screens[S.phase]();
   wire();
@@ -397,22 +400,38 @@ holdToShow($("peekBtn"), (on) => {
   $("peekRole").textContent = on && S?.role ? ROLE[S.role].name + (S.alive ? "" : " (خارج)") : "دوري";
 });
 
+/** One chat panel, two uses: the mafia's secret talk at night, and everyone's discussion in the day. */
 function mafiaChat() {
   const box = $("mchat");
-  const show = S.phase === "night" && S.role === "mafia" && S.alive && (S.night?.mates?.length || 0) > 1;
+  const mafiaNight = S.phase === "night" && S.role === "mafia" && S.alive && (S.night?.mates?.length || 0) > 1;
+  const day = S.phase === "discuss" || S.phase === "vote";
+  const show = mafiaNight || day;
   box.hidden = !show;
+  box.classList.toggle("day", day);
   document.body.classList.toggle("has-mchat", show);
   if (!show) return;
+  const lines = (mafiaNight ? S.night.chat : S.chat) || [];
+  const canWrite = mafiaNight || S.alive;
+  $("mchatIn").disabled = !canWrite;
+  $("mchatIn").placeholder = mafiaNight ? "رسالة سرية للمافيا…" : canWrite ? "اكتب للجماعة…" : "أنت خارج الجولة، تقرأ بس";
+  $("mchatSend").disabled = !canWrite;
   const log = $("mchatLog");
   const atEnd = log.scrollHeight - log.scrollTop - log.clientHeight < 30;
-  log.innerHTML = (S.night.chat || []).map((c) => `<li><b>${esc(nameOf(c.from))}:</b> <bdi>${esc(c.text)}</bdi></li>`).join("") || '<li class="muted">شات سري بين المافيا بس. اتفقوا على الضحية.</li>';
-  if (atEnd) log.scrollTop = log.scrollHeight;
+  const empty = mafiaNight ? "شات سري بين المافيا بس. اتفقوا على الضحية." : "شات النقاش: قولوا مين تشكّون فيه.";
+  const html = lines.map((c) => `<li><b>${esc(nameOf(c.from))}:</b> <bdi>${esc(c.text)}</bdi></li>`).join("") || `<li class="muted">${empty}</li>`;
+  if (log.innerHTML !== html) {
+    const grew = lines.length > (log.dataset.n | 0);
+    log.innerHTML = html;
+    log.dataset.n = lines.length;
+    if (atEnd || grew && lines.at(-1)?.from === S.me) log.scrollTop = log.scrollHeight;
+    if (grew && lines.at(-1)?.from !== S.me) sfx.tap();
+  }
 }
 $("mchatForm").addEventListener("submit", (e) => {
   e.preventDefault();
   const text = $("mchatIn").value.trim();
-  if (!text || !net) return;
-  net.send({ t: "mchat", text });
+  if (!text || !net || !S) return;
+  net.send({ t: S.phase === "night" ? "mchat" : "chat", text });
   $("mchatIn").value = "";
 });
 

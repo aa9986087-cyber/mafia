@@ -325,3 +325,21 @@ test("with bots, the vote starts as soon as the people are ready, and bots vote 
   const bots = g.room.living().filter((p) => p.bot);
   assert.ok(bots.every((p) => p.vote !== undefined) || g.room.phase !== "vote", "bots voted within four seconds");
 });
+
+test("day chat: the living talk during the discussion, those who are out only read", () => {
+  const g = setup(5, { doctor: false, detective: false });
+  g.toNight();
+  const [m] = g.byRole("mafia");
+  const victim = g.byRole("citizen")[0];
+  g.send(m, { t: "pick", target: g.ids[victim] });
+  g.room.tick();
+  g.clock.advance(TIMES.morning); g.room.tick();
+  assert.equal(g.room.phase, "discuss");
+  const talker = g.byRole("citizen")[1];
+  g.send(talker, { t: "chat", text: "أشك في الهادي" });
+  g.send(victim, { t: "chat", text: "أنا ميت بس أبي أتكلم" });
+  assert.deepEqual(g.state(victim).chat.map((c) => c.text), ["أشك في الهادي"], "the dead read but cannot write");
+  g.room.startNight();
+  g.send(talker, { t: "chat", text: "بالليل" });
+  assert.equal(g.room.dayChat.length, 1, "no day chat at night");
+});
