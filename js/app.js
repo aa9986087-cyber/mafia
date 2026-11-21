@@ -1,7 +1,7 @@
 // Mafia: every screen of the game. The server decides everything; this page shows what it sends and passes on
 // the player's choices.
-import { Net, normalizeCode, isValidCode, randomCode } from "./net.js?v=4";
-import { sfx, buzz } from "./sound.js?v=4";
+import { Net, normalizeCode, isValidCode, randomCode } from "./net.js?v=5";
+import { sfx, buzz } from "./sound.js?v=5";
 
 const $ = (id) => document.getElementById(id);
 const view = $("view");
@@ -48,6 +48,7 @@ function home(message = "") {
   document.body.classList.remove("in-room", "has-mchat");
   document.body.dataset.time = "day";
   $("bar").hidden = true;
+  $("sheet").hidden = true;
   const code = normalizeCode(new URLSearchParams(location.search).get("room"));
   view.innerHTML = `
     <section class="hero enter">${LOGO}<h1 class="title">مافيا</h1>
@@ -112,7 +113,8 @@ function onMessage(msg) {
   if (msg.t === "error") {
     // A brand-new code that happens to be taken: pick another one quietly.
     if (msg.reason === "exists" && net?.madeRoom) { const n = net; net = null; n.close(); return enterRoom(randomCode(), true); }
-    const why = { not_found: "الغرفة غير موجودة أو انتهت.", started: "اللعبة بدأت في هذي الغرفة. انتظروا الجولة الجاية.", full: "الغرفة ممتلئة." }[msg.reason] || "صار خطأ في الاتصال.";
+    if (msg.reason === "kicked" && net) store.del("mafia-token-" + net.code);
+    const why = { kicked: "المضيف أخرجك من الغرفة.", not_found: "الغرفة غير موجودة أو انتهت.", started: "اللعبة بدأت في هذي الغرفة. انتظروا الجولة الجاية.", full: "الغرفة ممتلئة." }[msg.reason] || "صار خطأ في الاتصال.";
     setURL("");
     return home(why);
   }
@@ -135,6 +137,8 @@ function onState(state) {
   if (changed) picked = null;
   document.body.dataset.time = S.phase === "night" ? "night" : "day";
   $("peekBtn").hidden = S.phase === "lobby" || S.phase === "reveal" || S.phase === "end";
+  $("playersBtn").hidden = !S.host || S.phase === "lobby";
+  if (!$("sheet").hidden) fillSheet();
   if (changed) cue(prev);
   const draw = () => { render(); };
   if (changed && prev && ["night", "morning"].includes(S.phase)) curtain(draw); else draw();
@@ -205,7 +209,7 @@ function lobby() {
     <section class="panel enter"><div class="room-code"><span class="eyebrow">رمز الغرفة</span><b dir="ltr">${esc(S.code)}</b></div>
       <div class="share-row" style="margin-top:14px"><button class="btn small" data-act="copy" type="button">انسخ الرابط</button><button class="btn small" data-act="share" type="button">شارك</button></div></section>
     <section class="panel enter"><h3 style="margin-bottom:12px">اللاعبون <span class="muted">(${ar(S.players.length)}/${ar(S.maxPlayers)})</span></h3>
-      <ul class="players">${S.players.map((p) => `<li class="${p.id === S.me ? "me" : ""} ${p.connected ? "" : "off"}">${avatarOf(p)}<bdi class="nm">${esc(p.name)}</bdi>${p.bot ? '<span class="bot-tag">بوت</span>' : ""}${p.host ? '<span class="crown" title="المضيف" aria-label="المضيف"><svg viewBox="0 0 24 24"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 10H5L3 8Z"/></svg></span>' : ""}</li>`).join("")}</ul></section>
+      <ul class="players">${S.players.map((p) => `<li class="${p.id === S.me ? "me" : ""} ${p.connected ? "" : "off"}">${avatarOf(p)}<bdi class="nm">${esc(p.name)}</bdi>${p.bot ? '<span class="bot-tag">بوت</span>' : ""}${S.host && p.id !== S.me ? `<button type="button" class="kick-x" data-kick="${p.id}" aria-label="اطرد ${esc(p.name)}">×</button>` : ""}${p.host ? '<span class="crown" title="المضيف" aria-label="المضيف"><svg viewBox="0 0 24 24"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 10H5L3 8Z"/></svg></span>' : ""}</li>`).join("")}</ul></section>
     <section class="panel enter"><h3 style="margin-bottom:6px">إعدادات الغرفة</h3>${host ? "" : '<p class="muted" style="margin:0 0 6px">المضيف هو اللي يعدّلها.</p>'}<div class="settings">${rows}</div></section>
     <div class="foot">
       ${host ? `<button class="btn gold block" data-act="start" type="button" ${n < S.minPlayers ? "disabled" : ""}>ابدأ اللعبة</button>` : ""}
@@ -342,6 +346,7 @@ function wire() {
     net.send({ t: "bots", n: S.players.filter((p) => p.bot).length + Number(b.dataset.bots) });
     sfx.tap();
   }));
+  view.querySelectorAll("[data-kick]").forEach((b) => b.addEventListener("click", () => askKick(b.dataset.kick)));
   view.querySelectorAll("[data-flag]").forEach((b) => b.addEventListener("click", () => {
     net.send({ t: "settings", values: { [b.dataset.flag]: !S.settings[b.dataset.flag] } });
     sfx.tap();
@@ -411,6 +416,25 @@ $("mchatForm").addEventListener("submit", (e) => {
   net.send({ t: "mchat", text });
   $("mchatIn").value = "";
 });
+
+// ---------- host: remove a player ----------
+
+function askKick(id) {
+  const p = S?.players.find((x) => x.id === id);
+  if (!p) return;
+  ask(`تطرد ${p.name}؟`, S.phase === "lobby" ? "يطلع من الغرفة، وما يقدر يرجع بنفس المقعد." : "يطلع من الجولة كأنه غادر، وما يقدر يرجع لها.", "اطرد", () => {
+    net.send({ t: "kick", target: id });
+    sfx.tap();
+  });
+}
+
+function fillSheet() {
+  $("sheetList").innerHTML = S.players.filter((p) => p.id !== S.me).map((p) => `<li class="${p.left || !p.alive ? "out" : ""}">${avatarOf(p)}<bdi class="nm">${esc(p.name)}${p.bot ? " · بوت" : ""}${p.left ? " · خارج" : !p.alive ? " · طلع" : !p.connected ? " · منقطع" : ""}</bdi>
+    ${p.left ? "" : `<button type="button" class="btn small crimson" data-sheet-kick="${p.id}">اطرد</button>`}</li>`).join("");
+  $("sheetList").querySelectorAll("[data-sheet-kick]").forEach((b) => b.addEventListener("click", () => { $("sheet").hidden = true; askKick(b.dataset.sheetKick); }));
+}
+$("playersBtn").addEventListener("click", () => { if (!S) return; fillSheet(); $("sheet").hidden = false; });
+$("sheetClose").addEventListener("click", () => { $("sheet").hidden = true; });
 
 // ---------- timers, toasts, top bar ----------
 

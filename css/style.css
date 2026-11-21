@@ -279,3 +279,12 @@ body.has-mchat .view { padding-bottom: calc(var(--bottom) + 190px); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Host: removing a player */
+.kick-x { flex: none; width: 30px; height: 30px; border-radius: 50%; border: 1px solid rgba(208, 38, 63, .5); background: rgba(163, 18, 42, .2); color: #ff9aa8; font-size: 18px; line-height: 1; display: grid; place-items: center; padding: 0; }
+.players li .kick-x { margin-inline-start: 4px; }
+.sheet-box { max-height: 80vh; overflow-y: auto; overscroll-behavior: contain; }
+.sheet-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; text-align: start; }
+.sheet-list li { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 14px; background: rgba(255, 255, 255, .04); }
+.sheet-list .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 800; }
+.sheet-list .out { opacity: .45; }

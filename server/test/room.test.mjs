@@ -283,3 +283,24 @@ test("one person and bots play whole matches: bots look at their cards, act at n
     assert.ok(nights >= 1);
   }
 });
+
+test("the host can kick someone: in the lobby they are gone, in a game they are out, and they cannot come back", () => {
+  const g = setup(6, { doctor: false, detective: false });
+  assert.equal(g.room.players.size, 6);
+  g.send(1, { t: "kick", target: g.ids[2] });
+  assert.equal(g.room.players.size, 6, "only the host can kick");
+  g.send(0, { t: "kick", target: g.ids[5] });
+  assert.equal(g.room.players.size, 5);
+  assert.equal(g.conns[5].inbox.at(-1).reason, "kicked");
+  const back = { inbox: [], send(s) { this.inbox.push(JSON.parse(s)); }, close() {} };
+  g.room.connect(back);
+  g.room.message(back, { t: "hello", token: g.conns[5].inbox.find((m) => m.t === "welcome").token });
+  assert.equal(back.inbox[0].reason, "kicked", "the old seat stays closed");
+  g.toNight();
+  const victim = [...g.byRole("citizen"), ...g.byRole("mafia")].find((i) => i !== 0);
+  g.send(0, { t: "kick", target: g.ids[victim] });
+  assert.equal(g.p(victim).left, true);
+  assert.equal(g.p(victim).alive, false);
+  g.send(0, { t: "bots", n: 2 });
+  assert.equal([...g.room.players.values()].some((p) => p.bot), false, "bots are added only in the lobby");
+});
