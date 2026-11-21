@@ -1,7 +1,7 @@
 // Mafia: every screen of the game. The server decides everything; this page shows what it sends and passes on
 // the player's choices.
-import { Net, normalizeCode, isValidCode, randomCode } from "./net.js?v=5";
-import { sfx, buzz } from "./sound.js?v=5";
+import { Net, normalizeCode, isValidCode, randomCode } from "./net.js?v=6";
+import { sfx, buzz } from "./sound.js?v=6";
 
 const $ = (id) => document.getElementById(id);
 const view = $("view");
@@ -113,8 +113,7 @@ function onMessage(msg) {
   if (msg.t === "error") {
     // A brand-new code that happens to be taken: pick another one quietly.
     if (msg.reason === "exists" && net?.madeRoom) { const n = net; net = null; n.close(); return enterRoom(randomCode(), true); }
-    if (msg.reason === "kicked" && net) store.del("mafia-token-" + net.code);
-    const why = { kicked: "المضيف أخرجك من الغرفة.", not_found: "الغرفة غير موجودة أو انتهت.", started: "اللعبة بدأت في هذي الغرفة. انتظروا الجولة الجاية.", full: "الغرفة ممتلئة." }[msg.reason] || "صار خطأ في الاتصال.";
+    const why = { kicked: "المضيف أخرجك من الغرفة. تقدر ترجع بنفس الرمز.", not_found: "الغرفة غير موجودة أو انتهت.", started: "اللعبة بدأت في هذي الغرفة. انتظروا الجولة الجاية.", full: "الغرفة ممتلئة." }[msg.reason] || "صار خطأ في الاتصال.";
     setURL("");
     return home(why);
   }
@@ -422,7 +421,7 @@ $("mchatForm").addEventListener("submit", (e) => {
 function askKick(id) {
   const p = S?.players.find((x) => x.id === id);
   if (!p) return;
-  ask(`تطرد ${p.name}؟`, S.phase === "lobby" ? "يطلع من الغرفة، وما يقدر يرجع بنفس المقعد." : "يطلع من الجولة كأنه غادر، وما يقدر يرجع لها.", "اطرد", () => {
+  ask(`تطرد ${p.name}؟`, S.phase === "lobby" ? "يطلع من الغرفة، ويقدر يرجع بالرمز." : "يطلع من الجولة كأنه غادر، ويقدر يرجع في الجولة الجاية.", "اطرد", () => {
     net.send({ t: "kick", target: id });
     sfx.tap();
   });

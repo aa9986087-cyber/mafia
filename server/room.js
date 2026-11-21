@@ -45,7 +45,6 @@ export class MafiaRoom {
     this.conns = new Map(); // conn -> player id
     this.settings = Object.fromEntries(Object.entries(SETTINGS).map(([k, d]) => [k, d.def]));
     this.seq = 0;
-    this.kicked = new Set(); // tokens of people the host removed; they cannot take their seat back
     this.emptySince = now();
     this.reset();
   }
@@ -98,7 +97,6 @@ export class MafiaRoom {
 
   hello(conn, msg) {
     const token = String(msg.token || "").slice(0, 64);
-    if (token && this.kicked.has(token)) return this.reject(conn, "kicked");
     let p = token && [...this.players.values()].find((x) => x.token === token);
     if (p) {
       if (p.conn && p.conn !== conn) { this.conns.delete(p.conn); try { p.conn.close(); } catch { /* gone */ } }
@@ -451,12 +449,12 @@ const HANDLERS = {
     if (name) { p.name = this.uniqueName(name, p); this.dirty = true; }
   },
 
-  /** The host removes someone (a person or a bot). In a game they are out of the round, like someone who left. */
+  /** The host removes someone (a person or a bot). In a game they are out of the round, like someone who left.
+   *  They may come back: into the lobby with the room code, or to watch a running game with their old seat. */
   kick(p, msg) {
     if (!p.host) return;
     const t = this.players.get(msg.target);
     if (!t || t === p) return;
-    if (!t.bot) this.kicked.add(t.token);
     if (t.conn) { const c = t.conn; this.conns.delete(c); t.conn = null; this.reject(c, "kicked"); }
     t.connected = false;
     if (this.phase === "lobby" || t.bot && this.phase === "end") this.players.delete(t.id);
