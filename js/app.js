@@ -1,7 +1,7 @@
 // Mafia: every screen of the game. The server decides everything; this page shows what it sends and passes on
 // the player's choices.
-import { Net, normalizeCode, isValidCode, randomCode } from "./net.js";
-import { sfx, buzz } from "./sound.js";
+import { Net, normalizeCode, isValidCode, randomCode } from "./net.js?v=2";
+import { sfx, buzz } from "./sound.js?v=2";
 
 const $ = (id) => document.getElementById(id);
 const view = $("view");

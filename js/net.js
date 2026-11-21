@@ -1,8 +1,9 @@
 // Real-time link to a room: the same system as the Dakheel game. Reconnects on its own (the saved token keeps
 // your seat), notices a link that died while the phone slept, and keeps the server clock for the timers.
 
-// The rooms run on the Dakheel server (Cloudflare). ?server=ws://127.0.0.1:8787 points a test page elsewhere.
-const SERVER = new URLSearchParams(location.search).get("server") || "wss://al-dakheel.vamosx.workers.dev";
+// The game's own server (server/ in this repository, on Cloudflare). ?server=ws://127.0.0.1:8787 points a test
+// page at a local one.
+const SERVER = new URLSearchParams(location.search).get("server") || "wss://mafia-server.vamosx.workers.dev";
 
 export const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 export const CODE_LEN = 5;
@@ -20,7 +21,7 @@ export class Net {
     this.bestRtt = Infinity;
   }
 
-  url() { return `${SERVER}/mafia/ws/${this.code}${this.create ? "?create=1" : ""}`; }
+  url() { return `${SERVER}/ws/${this.code}${this.create ? "?create=1" : ""}`; }
 
   connect(hello) { this.hello = hello; this.open(); }
 
