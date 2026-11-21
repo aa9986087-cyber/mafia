@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#09080b">
+  <meta name="description" content="مافيا: لعبة جماعية أونلاين بالعربي. مافيا وطبيب ومحقق ومواطنون، ليل ونهار وتصويت، من جوالاتكم.">
+  <title>مافيا</title>
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;800;900&family=Tajawal:wght@400;500;700;800&display=swap">
+  <link rel="stylesheet" href="css/style.css?v=1">
+</head>
+<body data-time="day">
+  <div class="sky sky-day" aria-hidden="true"></div>
+  <div class="sky sky-night" aria-hidden="true"><i class="moon"></i></div>
+
+  <header id="bar" class="bar" hidden>
+    <div class="bar-code"><span>الغرفة</span><b id="barCode" dir="ltr"></b></div>
+    <div class="bar-tools">
+      <button id="peekBtn" class="icon-btn peek" type="button" hidden aria-label="اضغط مطوّلًا لترى دورك">
+        <svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+        <span id="peekRole">دوري</span>
+      </button>
+      <button id="soundBtn" class="icon-btn" type="button" aria-label="الصوت"></button>
+      <button id="leaveBtn" class="icon-btn" type="button" aria-label="اخرج من الغرفة">
+        <svg viewBox="0 0 24 24"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/><path d="M10 17l-5-5 5-5M5 12h11"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="view" class="view"></main>
+
+  <!-- Mafia night chat: kept outside the re-rendered screen so typing is never interrupted. -->
+  <section id="mchat" class="mchat" hidden aria-label="شات المافيا السري">
+    <ul id="mchatLog" class="mchat-log"></ul>
+    <form id="mchatForm" class="mchat-form">
+      <input id="mchatIn" maxlength="140" autocomplete="off" placeholder="رسالة سرية للمافيا…" aria-label="رسالة سرية للمافيا">
+      <button class="btn small crimson" type="submit">إرسال</button>
+    </form>
+  </section>
+
+  <div id="ask" class="ask" hidden>
+    <div class="ask-box">
+      <h3 id="askTitle"></h3>
+      <p id="askText"></p>
+      <div class="ask-row"><button id="askYes" class="btn crimson" type="button"></button><button id="askNo" class="btn ghost" type="button">رجوع</button></div>
+    </div>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="curtain" class="curtain" aria-hidden="true"></div>
+
+  <script type="module" src="js/app.js?v=1"></script>
+</body>
+</html>

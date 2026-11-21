@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#0d0b10"/>
+  <!-- a fedora over a mask: the mafia -->
+  <path d="M14 34c4-1 9-1.6 18-1.6S46 33 50 34c-2 3-9 4.6-18 4.6S16 37 14 34Z" fill="#b89a5e"/>
+  <path d="M21 33c0-8 2-15 6-15 2 0 3 2 5 2s3-2 5-2c4 0 6 7 6 15-4-.6-7-1-11-1s-7 .4-11 1Z" fill="#1c1920" stroke="#b89a5e" stroke-width="1.6"/>
+  <path d="M21.5 29.5c4-.8 7-1 10.5-1s6.5.2 10.5 1" stroke="#a3122a" stroke-width="3"/>
+  <path d="M20 43c3 3 7 5 12 5s9-2 12-5c-3-1-7-1.5-12-1.5S23 42 20 43Z" fill="#a3122a"/>
+  <circle cx="26" cy="44.6" r="1.6" fill="#0d0b10"/><circle cx="38" cy="44.6" r="1.6" fill="#0d0b10"/>
+</svg>
