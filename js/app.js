@@ -1,7 +1,7 @@
 // Mafia: every screen of the game. The server decides everything; this page shows what it sends and passes on
 // the player's choices.
-import { Net, normalizeCode, isValidCode, randomCode } from "./net.js?v=3";
-import { sfx, buzz } from "./sound.js?v=3";
+import { Net, normalizeCode, isValidCode, randomCode } from "./net.js?v=4";
+import { sfx, buzz } from "./sound.js?v=4";
 
 const $ = (id) => document.getElementById(id);
 const view = $("view");
@@ -188,7 +188,12 @@ const spectatorNote = () => `<p class="spectator">أنت خارج الجولة. 
 function lobby() {
   const host = S.host;
   const n = S.players.filter((p) => p.connected).length;
-  const rows = Object.entries(S.limits).map(([k, d]) => {
+  const bots = S.players.filter((p) => p.bot).length;
+  const botRow = `<div class="setting"><span>لاعبون آليون</span><div class="stepper">
+      <button type="button" data-bots="-1" ${!host || bots <= 0 ? "disabled" : ""} aria-label="أنقص">−</button>
+      <b>${ar(bots)}</b>
+      <button type="button" data-bots="1" ${!host || S.players.length >= S.maxPlayers ? "disabled" : ""} aria-label="زد">+</button></div></div>`;
+  const rows = botRow + Object.entries(S.limits).map(([k, d]) => {
     const v = S.settings[k];
     if (d.flag) return `<div class="setting"><span>${d.label}</span><button class="switch" role="switch" aria-checked="${v}" aria-label="${d.label}" data-flag="${k}" ${host ? "" : "disabled"}></button></div>`;
     return `<div class="setting"><span>${d.label}</span><div class="stepper">
@@ -200,11 +205,11 @@ function lobby() {
     <section class="panel enter"><div class="room-code"><span class="eyebrow">رمز الغرفة</span><b dir="ltr">${esc(S.code)}</b></div>
       <div class="share-row" style="margin-top:14px"><button class="btn small" data-act="copy" type="button">انسخ الرابط</button><button class="btn small" data-act="share" type="button">شارك</button></div></section>
     <section class="panel enter"><h3 style="margin-bottom:12px">اللاعبون <span class="muted">(${ar(S.players.length)}/${ar(S.maxPlayers)})</span></h3>
-      <ul class="players">${S.players.map((p) => `<li class="${p.id === S.me ? "me" : ""} ${p.connected ? "" : "off"}">${avatarOf(p)}<bdi class="nm">${esc(p.name)}</bdi>${p.host ? '<span class="crown" title="المضيف" aria-label="المضيف"><svg viewBox="0 0 24 24"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 10H5L3 8Z"/></svg></span>' : ""}</li>`).join("")}</ul></section>
+      <ul class="players">${S.players.map((p) => `<li class="${p.id === S.me ? "me" : ""} ${p.connected ? "" : "off"}">${avatarOf(p)}<bdi class="nm">${esc(p.name)}</bdi>${p.bot ? '<span class="bot-tag">بوت</span>' : ""}${p.host ? '<span class="crown" title="المضيف" aria-label="المضيف"><svg viewBox="0 0 24 24"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 10H5L3 8Z"/></svg></span>' : ""}</li>`).join("")}</ul></section>
     <section class="panel enter"><h3 style="margin-bottom:6px">إعدادات الغرفة</h3>${host ? "" : '<p class="muted" style="margin:0 0 6px">المضيف هو اللي يعدّلها.</p>'}<div class="settings">${rows}</div></section>
     <div class="foot">
       ${host ? `<button class="btn gold block" data-act="start" type="button" ${n < S.minPlayers ? "disabled" : ""}>ابدأ اللعبة</button>` : ""}
-      <p class="muted" style="margin:0">${n < S.minPlayers ? `تحتاجون ${ar(S.minPlayers)} لاعبين على الأقل. أرسلوا الرابط لربعكم.` : host ? "كل شي جاهز. ابدأ لما يكتمل الجميع." : "بانتظار المضيف يبدأ اللعبة…"}</p>
+      <p class="muted" style="margin:0">${n < S.minPlayers ? `تحتاجون ${ar(S.minPlayers)} لاعبين على الأقل. أرسلوا الرابط لربعكم${host ? "، أو أضف لاعبين آليين من الإعدادات" : ""}.` : host ? "كل شي جاهز. ابدأ لما يكتمل الجميع." : "بانتظار المضيف يبدأ اللعبة…"}</p>
     </div>`;
 }
 
@@ -331,6 +336,10 @@ function wire() {
   view.querySelectorAll("[data-k]").forEach((b) => b.addEventListener("click", () => {
     const k = b.dataset.k, d = S.limits[k];
     net.send({ t: "settings", values: { [k]: S.settings[k] + d.step * Number(b.dataset.d) } });
+    sfx.tap();
+  }));
+  view.querySelectorAll("[data-bots]").forEach((b) => b.addEventListener("click", () => {
+    net.send({ t: "bots", n: S.players.filter((p) => p.bot).length + Number(b.dataset.bots) });
     sfx.tap();
   }));
   view.querySelectorAll("[data-flag]").forEach((b) => b.addEventListener("click", () => {

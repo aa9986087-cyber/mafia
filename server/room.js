@@ -26,6 +26,8 @@ export const TIMES = {
   emptyRoom: 5 * 60000
 };
 
+const BOT_NAMES = ["أبو سعد", "ريم", "ناصر", "هيا", "سلطان", "لولوة", "بدر", "شهد", "فهد", "منيرة", "خالد", "نوف", "جدّو", "عمّو صالح", "دانة"];
+
 export const ROLES = { mafia: "مافيا", doctor: "طبيب", detective: "محقق", citizen: "مواطن" };
 
 /** At most a third of the table can be mafia (rounded down, at least one). */
@@ -74,10 +76,11 @@ export class MafiaRoom {
     this.dirty = true;
   }
 
-  isEmpty() { return ![...this.players.values()].some((p) => p.connected); }
+  /** Bots keep nobody company: a room with only bots in it is empty. */
+  isEmpty() { return ![...this.players.values()].some((p) => p.connected && !p.bot); }
   isDead() { return this.isEmpty() && this.now() - this.emptySince > TIMES.emptyRoom; }
 
-  send(p, msg) { if (p.conn) try { p.conn.send(JSON.stringify(msg)); } catch { /* socket gone */ } }
+  send(p, msg) { if (p.conn && !p.bot) try { p.conn.send(JSON.stringify(msg)); } catch { /* socket gone */ } }
   sendConn(conn, msg) { try { conn.send(JSON.stringify(msg)); } catch { /* socket gone */ } }
 
   message(conn, raw) {
@@ -125,7 +128,7 @@ export class MafiaRoom {
     const p = {
       id, token, name: this.uniqueName(cleanName(msg.name) || "ضيف"), conn: null, connected: true, disconnectedAt: 0,
       host: false, role: "citizen", alive: true, left: false, ready: false, pick: null, vote: undefined,
-      lastProtect: null, results: []
+      lastProtect: null, results: [], bot: false, actAt: 0
     };
     this.players.set(id, p);
     return p;
@@ -138,7 +141,7 @@ export class MafiaRoom {
   }
 
   passHost() {
-    const next = [...this.players.values()].find((x) => x.connected && !x.left);
+    const next = [...this.players.values()].find((x) => x.connected && !x.left && !x.bot);
     if (!next) return;
     for (const x of this.players.values()) x.host = x === next;
   }
@@ -167,7 +170,7 @@ export class MafiaRoom {
     if (this.settings.detective) roles.push("detective");
     while (roles.length < n) roles.push("citizen");
     order.forEach((p, i) => {
-      Object.assign(p, { role: roles[i], alive: true, left: false, ready: false, pick: null, vote: undefined, lastProtect: null, results: [] });
+      Object.assign(p, { role: roles[i], alive: true, left: false, ready: false, pick: null, vote: undefined, lastProtect: null, results: [], actAt: 0 });
     });
     this.reset();
     this.phase = "reveal";
@@ -179,7 +182,7 @@ export class MafiaRoom {
     this.phase = "night";
     this.deadline = this.now() + this.settings.night * 1000;
     this.nightChat = [];
-    for (const p of this.players.values()) { p.pick = null; p.ready = false; p.vote = undefined; }
+    for (const p of this.players.values()) { p.pick = null; p.ready = false; p.vote = undefined; p.actAt = 0; }
     this.dirty = true;
   }
 
@@ -224,7 +227,7 @@ export class MafiaRoom {
   startVote() {
     this.phase = "vote";
     this.deadline = this.now() + this.settings.vote * 1000;
-    for (const p of this.players.values()) { p.vote = undefined; p.ready = false; }
+    for (const p of this.players.values()) { p.vote = undefined; p.ready = false; p.actAt = 0; }
     this.dirty = true;
   }
 
@@ -288,6 +291,75 @@ export class MafiaRoom {
     this.checkWin();
   }
 
+  // ---------- bots ----------
+
+  /** The host fills the table with computer players (lobby only). */
+  setBots(n) {
+    const bots = [...this.players.values()].filter((p) => p.bot);
+    n = Math.max(0, Math.min(n, bots.length + MAX_PLAYERS - this.players.size));
+    while (bots.length < n) {
+      const used = new Set([...this.players.values()].map((p) => p.name));
+      const name = BOT_NAMES.find((x) => !used.has(x)) || "بوت";
+      const p = this.addPlayer({ name });
+      Object.assign(p, { bot: true, connected: true, token: "" });
+      bots.push(p);
+    }
+    while (bots.length > n) this.players.delete(bots.pop().id);
+    this.dirty = true;
+  }
+
+  /** A bot acts once its own little thinking time has passed, so it never answers instantly. */
+  botReady(p, now, min, spread) {
+    if (!p.actAt) { p.actAt = now + min + this.random() * spread; return false; }
+    if (now < p.actAt) return false;
+    p.actAt = 0;
+    return true;
+  }
+
+  runBots(now) {
+    const bots = [...this.players.values()].filter((p) => p.bot);
+    if (!bots.length) return;
+    const pickOne = (list) => list[Math.floor(this.random() * list.length)];
+    for (const b of bots) {
+      if (this.phase === "reveal") { if (!b.ready && this.botReady(b, now, 1500, 3000)) HANDLERS.seen.call(this, b); continue; }
+      if (!b.alive || b.left) continue;
+      if (this.phase === "night" && !b.pick) {
+        if (!this.botReady(b, now, 3000, 9000)) continue;
+        const alive = this.living().filter((x) => x !== b);
+        let target;
+        if (b.role === "mafia") {
+          // Follow a fellow mafia's choice if there is one, so they agree.
+          const mate = this.living().find((x) => x.role === "mafia" && x !== b && x.pick);
+          target = mate ? this.players.get(mate.pick) : pickOne(alive.filter((x) => x.role !== "mafia"));
+        } else if (b.role === "doctor") {
+          const allowed = this.living().filter((x) => x.id !== b.lastProtect && (x !== b || this.settings.doctorSelf));
+          target = pickOne(allowed);
+        } else if (b.role === "detective") {
+          const checked = new Set(b.results.map((r) => r.id));
+          target = pickOne(alive.filter((x) => !checked.has(x.id))) || pickOne(alive);
+        } else target = pickOne(alive);
+        if (target) HANDLERS.pick.call(this, b, { target: target.id });
+      } else if (this.phase === "discuss" && !b.ready) {
+        // Give the people time to talk: bots are ready only after most of the discussion.
+        if (now >= this.deadline - this.settings.discuss * 1000 * 0.35) HANDLERS.ready.call(this, b, { on: true });
+      } else if (this.phase === "vote" && b.vote === undefined) {
+        if (!this.botReady(b, now, 3000, 8000)) continue;
+        const alive = this.living().filter((x) => x !== b);
+        const caught = b.role === "detective" && b.results.find((r) => r.mafia && this.players.get(r.id)?.alive);
+        // Otherwise lean towards whoever already has the most votes, so a round rarely ends in a tie.
+        const tally = new Map();
+        for (const x of this.living()) if (x.vote && x.vote !== "skip") tally.set(x.vote, (tally.get(x.vote) || 0) + 1);
+        const leader = [...tally].sort((a, c) => c[1] - a[1])[0]?.[0];
+        let target;
+        if (caught) target = caught.id;
+        else if (b.role === "mafia") target = (leader && this.players.get(leader)?.role !== "mafia" && leader !== b.id ? leader : pickOne(alive.filter((x) => x.role !== "mafia"))?.id);
+        else if (leader && leader !== b.id && this.random() < 0.7) target = leader;
+        else target = this.random() < 0.2 ? "skip" : pickOne(alive)?.id;
+        HANDLERS.vote.call(this, b, { target: target || "skip" });
+      }
+    }
+  }
+
   // ---------- tick ----------
 
   tick() {
@@ -300,6 +372,7 @@ export class MafiaRoom {
       if (now - p.disconnectedAt >= grace) this.dropOut(p);
     }
 
+    this.runBots(now);
     const due = this.deadline && now >= this.deadline;
     switch (this.phase) {
       case "reveal":
@@ -337,7 +410,7 @@ export class MafiaRoom {
     const end = this.phase === "end";
     const mafiaEye = me.role === "mafia" && this.phase !== "lobby";
     const players = [...this.players.values()].map((p) => ({
-      id: p.id, name: p.name, host: p.host, connected: p.connected, alive: p.alive, left: p.left,
+      id: p.id, name: p.name, host: p.host, connected: p.connected, alive: p.alive, left: p.left, bot: p.bot,
       ready: this.phase === "discuss" || this.phase === "reveal" ? p.ready : undefined,
       voted: this.phase === "vote" ? p.vote !== undefined : undefined,
       role: end || p === me || (mafiaEye && p.role === "mafia") ? p.role : undefined
@@ -374,6 +447,12 @@ const HANDLERS = {
     if (this.phase !== "lobby") return;
     const name = cleanName(msg.name);
     if (name) { p.name = this.uniqueName(name, p); this.dirty = true; }
+  },
+
+  bots(p, msg) {
+    if (!p.host || this.phase !== "lobby") return;
+    const n = Number(msg.n);
+    if (Number.isInteger(n)) this.setBots(n);
   },
 
   settings(p, msg) {

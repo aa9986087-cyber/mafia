@@ -249,3 +249,37 @@ test("a whole random match always ends with a winner", () => {
     assert.ok(["town", "mafia"].includes(g.room.winner));
   }
 });
+
+test("bots: the host adds them in the lobby, they never host, and a room of only bots is empty", () => {
+  const g = setup(1);
+  g.send(0, { t: "bots", n: 5 });
+  assert.equal(g.room.players.size, 6);
+  assert.equal(g.state(0).players.filter((p) => p.bot).length, 5);
+  g.send(0, { t: "bots", n: 3 });
+  assert.equal(g.room.players.size, 4);
+  g.room.disconnect(g.conns[0]);
+  assert.equal([...g.room.players.values()].some((p) => p.bot && p.host), false);
+  assert.equal(g.room.isEmpty(), true);
+  const g2 = setup(2);
+  g2.send(1, { t: "bots", n: 3 });
+  assert.equal(g2.room.players.size, 2, "only the host adds bots");
+});
+
+test("one person and bots play whole matches: bots look at their cards, act at night and vote", () => {
+  for (let run = 0; run < 12; run++) {
+    const g = setup(1, { mafia: 1 + (run % 2) });
+    g.send(0, { t: "bots", n: 4 + (run % 6) });
+    g.send(0, { t: "start" });
+    g.send(0, { t: "seen" });
+    let nights = 0;
+    for (let step = 0; step < 6000 && g.room.phase !== "end"; step++) {
+      if (g.room.phase === "night" && nights < g.room.round) nights = g.room.round;
+      // The person just goes along: vote skip and stay quiet.
+      if (g.room.phase === "vote" && g.p(0).alive && g.p(0).vote === undefined) g.send(0, { t: "vote", target: "skip" });
+      g.clock.advance(500);
+      g.room.tick();
+    }
+    assert.equal(g.room.phase, "end", `run ${run} finished`);
+    assert.ok(nights >= 1);
+  }
+});
